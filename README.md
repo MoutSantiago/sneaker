@@ -35,25 +35,6 @@ El sistema permite a los usuarios consultar y buscar productos, gestionar compra
 
 La documentación completa del proyecto se encuentra en la wiki del repositorio: [Wiki - Sneaker](https://github.com/Chantun/sneaker_c/wiki).
 
-Para más detalles, consultar:
-
-- [Requerimientos](https://github.com/Chantun/sneaker_c/wiki/Requerimientos)
-- [Casos de Uso](https://github.com/Chantun/sneaker_c/wiki/Casos-de-uso)
-- [Reglas de Negocio](https://github.com/Chantun/sneaker_c/wiki/Reglas-de-negocio)
-- [Categorías y Estructura](https://github.com/Chantun/sneaker_c/wiki/Categorias)
-
-## Diagrama y Proyectos
-
-- [Casos de uso (Diagrama)](https://app.diagrams.net/#G12HqsRsNxovvdGw78bRmPA0YiFJUd9aee)
-- [Diagrama de clases](https://app.diagrams.net/#G1FRyeTi9jNelXj7Nm8zU8kAkHDNeI_jmQ)
-- [GitHub Project](https://github.com/users/Chantun/projects/6)
-
-## Colaboradores
-
-- [Laiño Valentino](https://github.com/valentinolaino)
-- [Mout Santiago](https://github.com/Chantun)
-- [Sandillú Axel](https://github.com/HormigaARG)
-
 ## Licencia
 
 Este proyecto está licenciado bajo la [GNU General Public License v3.0](LICENSE).
