@@ -1,9 +1,10 @@
 name: Frontend CI
 
-push:
-  branches: [main, develop, "release/**", "hotfix/**"]
-pull_request:
-  branches: [main, develop, "release/**", "hotfix/**"]
+on:
+  push:
+    branches: [main, develop, "release/**", "hotfix/**"]
+  pull_request:
+    branches: [main, develop, "release/**", "hotfix/**"]
 
 jobs:
   lint:
