@@ -77,13 +77,13 @@ npm ci
 # Generar cliente de Prisma
 npx prisma generate
 
-# Ejecutar en desarrollo
+# Ejecutar en desarrollo (requiere Node.js 24+ por ESM de NestJS 12)
 npm run start:dev
 
 # Ejecutar linter
 npm run lint
 
-# Ejecutar tests
+# Ejecutar tests (requiere Node.js 24+ por require(esm) nativo de Jest)
 npm test
 
 # Ejecutar tests e2e
