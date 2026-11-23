@@ -1,13 +1,13 @@
 name: Frontend CI
 
-on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main, develop]
+push:
+  branches: [main, develop, "release/**", "hotfix/**"]
+pull_request:
+  branches: [main, develop, "release/**", "hotfix/**"]
 
 jobs:
   lint:
+    name: Frontend - Lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -32,6 +32,7 @@ jobs:
         run: npx prettier --check "app/**/*.{ts,tsx}"
 
   test:
+    name: Frontend - Test
     runs-on: ubuntu-latest
     defaults:
       run:

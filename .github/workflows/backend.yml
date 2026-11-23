@@ -2,12 +2,13 @@ name: Backend CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop, "release/**", "hotfix/**"]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop, "release/**", "hotfix/**"]
 
 jobs:
   lint:
+    name: Backend - Lint
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,8 +19,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
           cache-dependency-path: ./backend/package-lock.json
 
       - name: Install dependencies
@@ -38,6 +39,7 @@ jobs:
         run: npx prettier --check "src/**/*.ts" "test/**/*.ts"
 
   test:
+    name: Backend - Test
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -48,8 +50,8 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24'
-          cache: 'npm'
+          node-version: "24"
+          cache: "npm"
           cache-dependency-path: ./backend/package-lock.json
 
       - name: Install dependencies
