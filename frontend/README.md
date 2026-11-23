@@ -36,14 +36,14 @@ frontend/
 
 ## Scripts
 
-| Script | Descripción |
-|--------|-------------|
-| `npm run dev` | Inicia servidor de desarrollo |
-| `npm run build` | Compila para producción |
-| `npm start` | Inicia en modo producción |
-| `npm run lint` | Ejecuta ESLint |
+| Script           | Descripción                               |
+| ---------------- | ----------------------------------------- |
+| `npm run dev`    | Inicia servidor de desarrollo             |
+| `npm run build`  | Compila para producción                   |
+| `npm start`      | Inicia en modo producción                 |
+| `npm run lint`   | Ejecuta ESLint                            |
 | `npm run format` | Formatea con Prettier `app/**/*.{ts,tsx}` |
-| `npm test` | Ejecuta tests con Jest |
+| `npm test`       | Ejecuta tests con Jest                    |
 
 ## Variables de entorno
 
