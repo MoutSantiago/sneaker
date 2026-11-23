@@ -65,6 +65,9 @@ DATABASE_URL="postgresql://user:password@localhost:5432/sneaker?schema=public"
 PORT=3000
 ```
 
+> **Nota para CI:** `prisma generate` requiere la variable `DATABASE_URL` aunque no se conecte a la base de datos real. En GitHub Actions se usa un valor dummy:
+> `DATABASE_URL="postgresql://dummy:dummy@localhost:5432/dummy"`
+
 ## Cómo ejecutar
 
 ```bash
