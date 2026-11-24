@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { ReturnProductsDto } from './dto/return-product.dto';
 import { ProductsQueryDto } from './dto/products-query.dto';
+import { productWhereInput } from '../generated/prisma/models';
 
 @Injectable()
 export class ProductsService {
@@ -20,22 +21,20 @@ export class ProductsService {
       limit = 10,
     } = query;
 
-    const where: Prisma.ProductWhereInput = {
+    const where: productWhereInput = {
       ...(brand && {
         brand: {
-          name: { contains: brand, mode: 'insensitive' },
+          contains: brand,
+          mode: 'insensitive',
         },
       }),
 
-      ...(size && {
-        size: {
-          equals: size,
-        },
-      }),
-
-      ...(color && {
-        color: {
-          equals: color,
+      ...((size !== undefined || color !== undefined) && {
+        product_variant: {
+          some: {
+            ...(size !== undefined && { size }),
+            ...(color && { color }),
+          },
         },
       }),
 

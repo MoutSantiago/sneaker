@@ -7,3 +7,36 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product {
+  id              Int               @id @default(autoincrement())
+  model           String            @db.VarChar(50)
+  description     String?
+  brand           String            @db.VarChar(50)
+  price           Decimal           @db.Decimal(10, 2)
+  type            product_type
+  usage           String?           @db.VarChar(30)
+  material        String?           @db.VarChar(50)
+  product_variant product_variant[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model product_variant {
+  id         Int     @id @default(autoincrement())
+  product_id Int
+  size       Decimal @db.Decimal(4, 1)
+  color      String  @db.VarChar(30)
+  stock      Int     @default(0)
+  priority   Int?    @default(0)
+  product    product @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product_variant_product")
+
+  @@unique([product_id, size, color], map: "uq_product_variant")
+}
+
+enum product_type {
+  SHOELACE
+  SHOE
+  INSOLE
+  SOCK
+}
