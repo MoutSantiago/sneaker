@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS product (
   price NUMERIC(10, 2) NOT NULL CHECK (price >= 0),
   type product_type NOT NULL,
   usage VARCHAR(30),
-  material VARCHAR(50),
+  material VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS product_variant (
