@@ -10,7 +10,9 @@ const {
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
+  registerMigration,
   runMigration,
+  runMigrations,
 } = require('./migrate');
 
 jest.mock('pg', () => ({ Client: jest.fn() }));
@@ -266,5 +268,150 @@ describe('runMigration', () => {
     await expect(runMigration(client, tmpDir, '001_product.sql')).rejects.toThrow(
       'La migración 001_product.sql falló: syntax error',
     );
+  });
+});
+describe('registerMigration', () => {
+  it('inserta el nombre sin .sql y la fecha de ejecución', async () => {
+    const client = { query: jest.fn().mockResolvedValue({}) };
+
+    await registerMigration(client, '001_product.sql');
+
+    expect(client.query).toHaveBeenCalledWith(
+      'INSERT INTO migration (name, execute_date) VALUES ($1, now())',
+      ['001_product'],
+    );
+  });
+
+  it('aclara que la migración ya se aplicó si el registro falla', async () => {
+    const client = { query: jest.fn().mockRejectedValue(new Error('connection lost')) };
+
+    await expect(registerMigration(client, '001_product.sql')).rejects.toThrow(
+      'La migración 001_product.sql se aplicó, pero no se pudo registrar en el historial: connection lost',
+    );
+  });
+});
+
+/**
+ * Crea un cliente falso que simula una conexión a PostgreSQL.
+ * @returns {object} Cliente simulado; toda consulta devuelve `{ rows: [] }` por defecto.
+ */
+function buildClientMock() {
+  return {
+    connect: jest.fn().mockResolvedValue(undefined),
+    end: jest.fn().mockResolvedValue(undefined),
+    query: jest.fn().mockResolvedValue({ rows: [] }),
+  };
+}
+
+describe('runMigrations', () => {
+  const MAIN_DATABASE_URL = 'postgresql://user:pass@localhost:5432/sneaker';
+  const SQL_FILES = {
+    '001_products.sql': 'SQL-001;',
+    '002_orders.sql': 'SQL-002;',
+    '003_users.sql': 'SQL-003;',
+  };
+  const INSERT_HISTORY = expect.stringContaining('INSERT INTO migration');
+  let tmpDir;
+  let history;
+  let main;
+
+  const buildOptions = () => ({
+    databaseUrl: MAIN_DATABASE_URL,
+    historyDatabaseUrl: DATABASE_URL,
+    dataDir: tmpDir,
+  });
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), 'migrations-'));
+    for (const [name, content] of Object.entries(SQL_FILES)) {
+      await writeFile(path.join(tmpDir, name), content);
+    }
+    history = buildClientMock();
+    main = buildClientMock();
+    Client.mockReset();
+    Client.mockImplementationOnce(() => history).mockImplementationOnce(() => main);
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('aplica solo las pendientes, en orden, y las registra', async () => {
+    history.query.mockResolvedValue({ rows: [{ name: '001_products' }] });
+
+    const applied = await runMigrations(buildOptions());
+
+    expect(applied).toEqual(['002_orders.sql', '003_users.sql']);
+    expect(main.query.mock.calls).toEqual([
+      ['BEGIN'],
+      ['SQL-002;'],
+      ['COMMIT'],
+      ['BEGIN'],
+      ['SQL-003;'],
+      ['COMMIT'],
+    ]);
+    expect(history.query).toHaveBeenCalledWith(INSERT_HISTORY, ['002_orders']);
+    expect(history.query).toHaveBeenCalledWith(INSERT_HISTORY, ['003_users']);
+    expect(history.end).toHaveBeenCalledTimes(1);
+    expect(main.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('no se conecta a la base principal si no hay pendientes', async () => {
+    history.query.mockResolvedValue({
+      rows: [{ name: '001_products' }, { name: '002_orders' }, { name: '003_users' }],
+    });
+
+    const applied = await runMigrations(buildOptions());
+
+    expect(applied).toEqual([]);
+    expect(Client).toHaveBeenCalledTimes(1);
+    expect(history.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('se detiene en el primer error y no registra la migración fallida', async () => {
+    main.query.mockImplementation(async (text) => {
+      if (text === 'SQL-002;') {
+        throw new Error('syntax error');
+      }
+
+      return { rows: [] };
+    });
+
+    await expect(runMigrations(buildOptions())).rejects.toThrow(
+      'La migración 002_orders.sql falló: syntax error',
+    );
+
+    expect(main.query.mock.calls).toEqual([
+      ['BEGIN'],
+      ['SQL-001;'],
+      ['COMMIT'],
+      ['BEGIN'],
+      ['SQL-002;'],
+      ['ROLLBACK'],
+    ]);
+    expect(history.query).toHaveBeenCalledWith(INSERT_HISTORY, ['001_products']);
+    expect(history.query).not.toHaveBeenCalledWith(INSERT_HISTORY, ['002_orders']);
+    expect(history.end).toHaveBeenCalledTimes(1);
+    expect(main.end).toHaveBeenCalledTimes(1);
+  });
+
+  it('lanza un error controlado, sin conectarse a ninguna base, si no existe la carpeta', async () => {
+    const options = { ...buildOptions(), dataDir: path.join(tmpDir, 'no-existe') };
+
+    await expect(runMigrations(options)).rejects.toThrow(
+      'No se pudo leer la carpeta de migraciones',
+    );
+    expect(Client).not.toHaveBeenCalled();
+  });
+
+  it('lanza un error controlado si no se puede acceder a la base principal', async () => {
+    main.connect.mockRejectedValue(new Error('connect ECONNREFUSED'));
+
+    await expect(runMigrations(buildOptions())).rejects.toThrow(
+      'No se pudo acceder a la base de datos principal: connect ECONNREFUSED',
+    );
+    expect(history.end).toHaveBeenCalledTimes(1);
   });
 });

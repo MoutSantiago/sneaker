@@ -164,6 +164,72 @@ async function runMigration(client, dataDir, fileName) {
   }
 }
 
+/**
+ * Registra una migración ya aplicada en el historial.
+ * Guarda el nombre sin `.sql` y la fecha de ejecución.
+ * @param {import('pg').Client} client - Cliente conectado a la base de datos secundaria.
+ * @param {string} fileName - Nombre del archivo, por ejemplo `001_product_table.sql`.
+ * @returns {Promise<void>}
+ * @throws {Error} Si no se puede registrar; la migración ya quedó aplicada en la base principal.
+ */
+async function registerMigration(client, fileName) {
+  try {
+    await client.query('INSERT INTO migration (name, execute_date) VALUES ($1, now())', [
+      getMigrationName(fileName),
+    ]);
+  } catch (error) {
+    throw new Error(
+      `La migración ${fileName} se aplicó, pero no se pudo registrar en el historial: ${error.message}`,
+    );
+  }
+}
+
+/**
+ * Ejecuta, en orden, todas las migraciones pendientes de la carpeta de migraciones.
+ * Cada migración corre en su propia transacción sobre la base principal y, una vez aplicada,
+ * se registra en la base secundaria. Se detiene en el primer error.
+ * @param {object} options - Configuración de la ejecución.
+ * @param {string} options.databaseUrl - URL de conexión de la base de datos principal.
+ * @param {string} options.historyDatabaseUrl - URL de conexión de la base de datos secundaria.
+ * @param {string} [options.dataDir] - Carpeta con las migraciones. Por defecto, `data/` en la raíz del repo.
+ * @returns {Promise<string[]>} Nombres de los archivos aplicados en esta ejecución.
+ * @throws {Error} Si falta la carpeta, no se puede acceder a alguna base o una migración falla.
+ */
+async function runMigrations({ databaseUrl, historyDatabaseUrl, dataDir = DATA_DIR }) {
+  const fileNames = await listMigrationFiles(dataDir);
+  const historyClient = await connectToHistoryDatabase(historyDatabaseUrl);
+  let mainClient;
+
+  try {
+    await ensureHistoryTable(historyClient);
+    const executedNames = await getExecutedMigrations(historyClient);
+    const pending = filterPendingMigrations(fileNames, executedNames);
+
+    if (pending.length === 0) {
+      console.log('No hay migraciones pendientes.');
+
+      return [];
+    }
+
+    try {
+      mainClient = await openClient(databaseUrl);
+    } catch (error) {
+      throw new Error(`No se pudo acceder a la base de datos principal: ${error.message}`);
+    }
+
+    for (const fileName of pending) {
+      await runMigration(mainClient, dataDir, fileName);
+      await registerMigration(historyClient, fileName);
+      console.log(`Migración aplicada: ${fileName}`);
+    }
+
+    return pending;
+  } finally {
+    await mainClient?.end();
+    await historyClient.end();
+  }
+}
+
 module.exports = {
   connectToHistoryDatabase,
   createDatabase,
@@ -172,5 +238,7 @@ module.exports = {
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
+  registerMigration,
   runMigration,
+  runMigrations,
 };
