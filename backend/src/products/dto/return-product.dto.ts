@@ -1,5 +1,6 @@
 import { IsArray, IsInt, IsNotEmpty, IsNumber, IsPositive, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
+import { product } from '../../generated/prisma/client';
 
 /**
  * DTO con los datos de paginación.
@@ -25,10 +26,10 @@ export class PaginationDto {
 /**
  * DTO con los datos de los productos retornados al cliente.
  */
-export class ReturnProductsDto<T = unknown> {
+export class ReturnProductsDto {
   @IsArray()
   @IsNotEmpty()
-  data: T[];
+  data: product[];
 
   @ValidateNested()
   @Type(() => PaginationDto)
