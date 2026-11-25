@@ -1,4 +1,4 @@
-import { IsArray, IsInt, IsNotEmpty, IsNumber, IsPositive, ValidateNested } from 'class-validator';
+import { IsArray, IsInt, IsNotEmpty, IsPositive, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { product } from '../../generated/prisma/client';
 

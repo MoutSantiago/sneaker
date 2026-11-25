@@ -58,10 +58,7 @@ describe('ProductsService', () => {
     jest.clearAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        ProductsService,
-        { provide: PrismaService, useValue: mockPrisma },
-      ],
+      providers: [ProductsService, { provide: PrismaService, useValue: mockPrisma }],
     }).compile();
 
     service = module.get<ProductsService>(ProductsService);
@@ -80,7 +77,7 @@ describe('ProductsService', () => {
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { name: 'asc' },
+        orderBy: { model: 'asc' },
         skip: 0,
         take: 10,
       });
@@ -106,7 +103,7 @@ describe('ProductsService', () => {
         where: {
           brand: { contains: 'nike', mode: 'insensitive' },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { model: 'asc' },
         skip: 0,
         take: 10,
       });
@@ -129,7 +126,7 @@ describe('ProductsService', () => {
             },
           },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { model: 'asc' },
         skip: 0,
         take: 10,
       });
@@ -147,7 +144,7 @@ describe('ProductsService', () => {
         where: {
           price: { gte: 50, lte: 200 },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { model: 'asc' },
         skip: 0,
         take: 10,
       });
@@ -179,7 +176,7 @@ describe('ProductsService', () => {
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
         where: {},
-        orderBy: { name: 'asc' },
+        orderBy: { model: 'asc' },
         skip: 5,
         take: 5,
       });
@@ -214,7 +211,7 @@ describe('ProductsService', () => {
           },
           price: { gte: 80, lte: 150 },
         },
-        orderBy: { name: 'asc' },
+        orderBy: { model: 'asc' },
         skip: 0,
         take: 20,
       });
@@ -259,9 +256,7 @@ describe('ProductsService', () => {
       mockPrisma.product.findUnique.mockResolvedValue(null);
 
       await expect(service.getOne(999)).rejects.toThrow(NotFoundException);
-      await expect(service.getOne(999)).rejects.toThrow(
-        'Product with id 999 not found.',
-      );
+      await expect(service.getOne(999)).rejects.toThrow('Product with id 999 not found.');
     });
   });
 
@@ -386,9 +381,7 @@ describe('ProductsService', () => {
       mockPrisma.product_variant.findUnique.mockResolvedValue(null);
 
       await expect(service.getOneVariant(999)).rejects.toThrow(NotFoundException);
-      await expect(service.getOneVariant(999)).rejects.toThrow(
-        'Variant with id 999 not found.',
-      );
+      await expect(service.getOneVariant(999)).rejects.toThrow('Variant with id 999 not found.');
     });
   });
 
