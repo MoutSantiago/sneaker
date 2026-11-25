@@ -7,7 +7,7 @@
  * PrismaService.
  */
 
-const { readdir } = require('node:fs/promises');
+const { readdir, readFile } = require('node:fs/promises');
 const path = require('node:path');
 const { Client } = require('pg');
 
@@ -139,6 +139,31 @@ async function connectToHistoryDatabase(connectionString) {
   }
 }
 
+/**
+ * Ejecuta un archivo de migración dentro de una transacción.
+ * Si el SQL falla, se revierte la transacción y no queda ningún cambio parcial.
+ * Los archivos no deben incluir sus propios BEGIN ni COMMIT.
+ * @param {import('pg').Client} client - Cliente conectado a la base de datos principal.
+ * @param {string} dataDir - Carpeta que contiene la migración.
+ * @param {string} fileName - Nombre del archivo, por ejemplo `001_product_table.sql`.
+ * @returns {Promise<void>}
+ * @throws {Error} Si no se puede leer el archivo o si el SQL falla (tras el ROLLBACK).
+ */
+async function runMigration(client, dataDir, fileName) {
+  const sql = await readFile(path.join(dataDir, fileName), 'utf8');
+
+  await client.query('BEGIN');
+
+  try {
+    await client.query(sql);
+    await client.query('COMMIT');
+  } catch (error) {
+    // Si el ROLLBACK también falla (por ejemplo, conexión caída), igual informamos el error original.
+    await client.query('ROLLBACK').catch(() => {});
+    throw new Error(`La migración ${fileName} falló: ${error.message}`);
+  }
+}
+
 module.exports = {
   connectToHistoryDatabase,
   createDatabase,
@@ -147,4 +172,5 @@ module.exports = {
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
+  runMigration,
 };

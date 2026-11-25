@@ -10,6 +10,7 @@ const {
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
+  runMigration,
 } = require('./migrate');
 
 jest.mock('pg', () => ({ Client: jest.fn() }));
@@ -206,6 +207,64 @@ describe('connectToHistoryDatabase', () => {
 
     await expect(connectToHistoryDatabase(DATABASE_URL)).rejects.toThrow(
       'No se pudo crear la base de datos secundaria: permission denied to create database',
+    );
+  });
+});
+
+describe('runMigration', () => {
+  const sql = 'CREATE TABLE product (id INT);';
+  let tmpDir;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), 'migrations-'));
+    await writeFile(path.join(tmpDir, '001_product.sql'), sql);
+  });
+
+  afterEach(async () => {
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('ejecuta el archivo dentro de una transacción confirmada', async () => {
+    const client = { query: jest.fn().mockResolvedValue({}) };
+
+    await runMigration(client, tmpDir, '001_product.sql');
+
+    expect(client.query.mock.calls).toEqual([['BEGIN'], [sql], ['COMMIT']]);
+  });
+
+  it('revierte la transacción y lanza un error si el SQL falla', async () => {
+    const client = {
+      query: jest.fn().mockImplementation(async (text) => {
+        if (text === sql) {
+          throw new Error('syntax error');
+        }
+
+        return {};
+      }),
+    };
+
+    await expect(runMigration(client, tmpDir, '001_product.sql')).rejects.toThrow(
+      'La migración 001_product.sql falló: syntax error',
+    );
+    expect(client.query.mock.calls).toEqual([['BEGIN'], [sql], ['ROLLBACK']]);
+  });
+
+  it('informa el error original aunque el ROLLBACK también falle', async () => {
+    const client = {
+      query: jest.fn().mockImplementation(async (text) => {
+        if (text === sql) {
+          throw new Error('syntax error');
+        }
+        if (text === 'ROLLBACK') {
+          throw new Error('connection lost');
+        }
+
+        return {};
+      }),
+    };
+
+    await expect(runMigration(client, tmpDir, '001_product.sql')).rejects.toThrow(
+      'La migración 001_product.sql falló: syntax error',
     );
   });
 });
