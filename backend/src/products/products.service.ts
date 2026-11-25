@@ -83,7 +83,12 @@ export class ProductsService {
         product_variant: {
           some: {
             ...(size !== undefined && { size }),
-            ...(color && { color }),
+            ...(color && {
+              color: {
+                contains: color,
+                mode: 'insensitive',
+              },
+            }),
           },
         },
       }),
