@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS product_variant (
   size NUMERIC(4, 1) NOT NULL CHECK (size > 0),
   color VARCHAR(30) NOT NULL,
   stock INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
-  priority INT DEFAULT 0 CHECK (stock >= 0),
+  priority INT NOT NULL DEFAULT 0 CHECK (stock >= 0),
 
   CONSTRAINT fk_product_variant_product
     FOREIGN KEY (product_id)
