@@ -230,6 +230,37 @@ async function runMigrations({ databaseUrl, historyDatabaseUrl, dataDir = DATA_D
   }
 }
 
+/**
+ * Punto de entrada del script: valida la configuración, ejecuta las migraciones pendientes
+ * y devuelve el código de salida del proceso.
+ * @param {Record<string, string | undefined>} env - Variables de entorno.
+ * @param {string} [dataDir] - Carpeta con las migraciones. Por defecto, `data/` en la raíz del repo.
+ * @returns {Promise<number>} `0` si terminó bien; `1` si hubo algún error.
+ */
+async function main(env, dataDir) {
+  const { DATABASE_URL, MIGRATIONS_DATABASE_URL } = env;
+
+  if (!DATABASE_URL || !MIGRATIONS_DATABASE_URL) {
+    console.error('Error: definí las variables de entorno DATABASE_URL y MIGRATIONS_DATABASE_URL.');
+
+    return 1;
+  }
+
+  try {
+    await runMigrations({
+      databaseUrl: DATABASE_URL,
+      historyDatabaseUrl: MIGRATIONS_DATABASE_URL,
+      dataDir,
+    });
+
+    return 0;
+  } catch (error) {
+    console.error(`Error: ${error.message}`);
+
+    return 1;
+  }
+}
+
 module.exports = {
   connectToHistoryDatabase,
   createDatabase,
@@ -238,7 +269,14 @@ module.exports = {
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
+  main,
   registerMigration,
   runMigration,
   runMigrations,
 };
+
+if (require.main === module) {
+  void main(process.env).then((exitCode) => {
+    process.exitCode = exitCode;
+  });
+}

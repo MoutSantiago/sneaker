@@ -10,6 +10,7 @@ const {
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
+  main,
   registerMigration,
   runMigration,
   runMigrations,
@@ -413,5 +414,53 @@ describe('runMigrations', () => {
       'No se pudo acceder a la base de datos principal: connect ECONNREFUSED',
     );
     expect(history.end).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('main', () => {
+  const ENV = {
+    DATABASE_URL: 'postgresql://user:pass@localhost:5432/sneaker',
+    MIGRATIONS_DATABASE_URL: 'postgresql://user:pass@localhost:5432/sneaker_migrations',
+  };
+  let tmpDir;
+
+  beforeEach(async () => {
+    tmpDir = await mkdtemp(path.join(os.tmpdir(), 'migrations-'));
+    Client.mockReset();
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    jest.restoreAllMocks();
+    await rm(tmpDir, { recursive: true, force: true });
+  });
+
+  it('devuelve 1 y avisa si faltan las variables de entorno', async () => {
+    const exitCode = await main({ DATABASE_URL: ENV.DATABASE_URL }, tmpDir);
+
+    expect(exitCode).toBe(1);
+    expect(console.error).toHaveBeenCalledWith(expect.stringContaining('MIGRATIONS_DATABASE_URL'));
+    expect(Client).not.toHaveBeenCalled();
+  });
+
+  it('devuelve 1 e informa el error si las migraciones fallan', async () => {
+    const failing = { connect: jest.fn().mockRejectedValue(new Error('connect ECONNREFUSED')) };
+    Client.mockImplementation(() => failing);
+
+    const exitCode = await main(ENV, tmpDir);
+
+    expect(exitCode).toBe(1);
+    expect(console.error).toHaveBeenCalledWith(
+      'Error: No se pudo acceder a la base de datos secundaria: connect ECONNREFUSED',
+    );
+  });
+
+  it('devuelve 0 cuando no hay nada que migrar', async () => {
+    Client.mockImplementation(() => buildClientMock());
+
+    const exitCode = await main(ENV, tmpDir);
+
+    expect(exitCode).toBe(0);
   });
 });
