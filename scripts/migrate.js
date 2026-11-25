@@ -23,4 +23,23 @@ async function listMigrationFiles(dataDir = DATA_DIR) {
   return entries.filter((name) => MIGRATION_FILE_PATTERN.test(name)).sort();
 }
 
-module.exports = { listMigrationFiles };
+/**
+ * Obtiene el nombre con el que se registra una migración: el nombre del archivo sin `.sql`.
+ * @param {string} fileName - Nombre del archivo, por ejemplo `001_product_table.sql`.
+ * @returns {string} Nombre sin extensión, por ejemplo `001_product_table`.
+ */
+function getMigrationName(fileName) {
+  return path.basename(fileName, '.sql');
+}
+
+/**
+ * Filtra las migraciones que todavía no fueron ejecutadas.
+ * @param {string[]} fileNames - Nombres de archivo de las migraciones disponibles.
+ * @param {Set<string>} executedNames - Nombres (sin `.sql`) de las migraciones ya registradas.
+ * @returns {string[]} Archivos pendientes, en el mismo orden en que se recibieron.
+ */
+function filterPendingMigrations(fileNames, executedNames) {
+  return fileNames.filter((fileName) => !executedNames.has(getMigrationName(fileName)));
+}
+
+module.exports = { filterPendingMigrations, getMigrationName, listMigrationFiles };

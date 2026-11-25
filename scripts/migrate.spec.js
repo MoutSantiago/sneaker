@@ -1,7 +1,7 @@
 const { mkdtemp, rm, writeFile } = require('node:fs/promises');
 const os = require('node:os');
 const path = require('node:path');
-const { listMigrationFiles } = require('./migrate');
+const { filterPendingMigrations, getMigrationName, listMigrationFiles } = require('./migrate');
 
 describe('listMigrationFiles', () => {
   let tmpDir;
@@ -39,5 +39,31 @@ describe('listMigrationFiles', () => {
     await expect(listMigrationFiles(missingDir)).rejects.toThrow(
       'No se pudo leer la carpeta de migraciones',
     );
+  });
+});
+
+describe('getMigrationName', () => {
+  it('quita la extensión .sql del nombre del archivo', () => {
+    expect(getMigrationName('001_product_table.sql')).toBe('001_product_table');
+  });
+});
+
+describe('filterPendingMigrations', () => {
+  const files = ['001_products.sql', '002_orders.sql', '003_users.sql'];
+
+  it('devuelve solo las migraciones que no están registradas', () => {
+    const executed = new Set(['001_products']);
+
+    expect(filterPendingMigrations(files, executed)).toEqual(['002_orders.sql', '003_users.sql']);
+  });
+
+  it('devuelve todas si no hay ninguna registrada', () => {
+    expect(filterPendingMigrations(files, new Set())).toEqual(files);
+  });
+
+  it('devuelve una lista vacía si todas ya fueron ejecutadas', () => {
+    const executed = new Set(['001_products', '002_orders', '003_users']);
+
+    expect(filterPendingMigrations(files, executed)).toEqual([]);
   });
 });
