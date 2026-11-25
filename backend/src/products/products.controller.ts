@@ -39,7 +39,7 @@ export class ProductsController {
    * @param query Queries de filtrado.
    * @returns Lista de variables de producto.
    */
-  @Get()
+  @Get('variants')
   async getManyVariants(@Query() query: ProductsQueryDto): Promise<ReturnVariantsDto> {
     return await this.service.getManyVariants(query);
   }
@@ -50,8 +50,19 @@ export class ProductsController {
    * @param id Id de la variante buscada.
    * @returns La variante buscada.
    */
-  @Get(':id')
+  @Get('variants/:id')
   async getOneVariant(@Param('id', ParseIntPipe) id: number): Promise<ReturnVariantsDto> {
     return await this.service.getOneVariant(id);
+  }
+
+  /**
+   * Obtiene todas las variantes de un producto especifico.
+   *
+   * @param id Id del producto.
+   * @returns Variantes del producto.
+   */
+  @Get(':id/variants')
+  async getVariants(@Param('id', ParseIntPipe) id: number): Promise<ReturnVariantsDto> {
+    return await this.service.getVariants(id);
   }
 }

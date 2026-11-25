@@ -243,4 +243,35 @@ export class ProductsService {
       },
     };
   }
+
+  /**
+   * Obtiene todas las variantes de un producto especifico.
+   *
+   * Hace una llamada a la base de datos usando prisma para obtener las variantes, filtra con where
+   * todas las variantes que coincidan con el id del producto ingresado y que tengan prioridad
+   * mayor a 0.
+   *
+   * @param id Id del producto.
+   * @returns Todas las variantes del producto ingresado.
+   */
+  async getVariants(id: number): Promise<ReturnVariantsDto> {
+    const variants: product_variant[] = await this.prisma.product_variant.findMany({
+      where: {
+        product_id: id,
+        priority: {
+          gt: 0, // priority > 0
+        },
+      },
+    });
+
+    return {
+      data: variants,
+      pagination: {
+        total: variants.length,
+        page: 0,
+        limit: variants.length,
+        totalPages: 0,
+      },
+    };
+  }
 }
