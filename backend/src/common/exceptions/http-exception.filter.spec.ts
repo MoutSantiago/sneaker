@@ -17,10 +17,7 @@ describe('HttpExceptionFilter', () => {
   it('debe estandarizar una HttpException con mensaje de string', () => {
     const filter = new HttpExceptionFilter();
     const { response, host } = createHost();
-    const exception = new HttpException(
-      'Usuario no encontrado',
-      HttpStatus.NOT_FOUND,
-    );
+    const exception = new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
 
     filter.catch(exception, host);
 
