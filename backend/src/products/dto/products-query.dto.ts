@@ -10,6 +10,10 @@ export class ProductsQueryDto {
   brand?: string;
 
   @IsOptional()
+  @IsIn(['SHOELACE', 'SHOE', 'INSOLE', 'SOCK'])
+  type?: string;
+
+  @IsOptional()
   @IsString()
   size?: string;
 

@@ -4,6 +4,7 @@ import { ReturnProductsDto } from './dto/return-product.dto';
 import { ProductsQueryDto } from './dto/products-query.dto';
 import { product_variantWhereInput, productWhereInput } from '../generated/prisma/models';
 import { product, product_variant } from '../generated/prisma/client';
+import { product_type } from '../generated/prisma/enums';
 import { ReturnVariantsDto } from './dto/return-variant.dto';
 
 @Injectable()
@@ -17,7 +18,7 @@ export class ProductsService {
    * @returns Filtros generados.
    */
   private buildProductVariantFilters(query: ProductsQueryDto): product_variantWhereInput {
-    const { brand, size, color, minPrice, maxPrice } = query;
+    const { brand, size, color, minPrice, maxPrice, type } = query;
 
     return {
       product: {
@@ -27,6 +28,8 @@ export class ProductsService {
             mode: 'insensitive',
           },
         }),
+
+        ...(type && { type: type as product_type }),
 
         ...((minPrice !== undefined || maxPrice !== undefined) && {
           price: {
@@ -65,7 +68,8 @@ export class ProductsService {
       color,
       minPrice,
       maxPrice,
-      sortBy = 'name',
+      type,
+      sortBy = 'model',
       order = 'asc',
       page = 1,
       limit = 10,
@@ -78,6 +82,8 @@ export class ProductsService {
           mode: 'insensitive',
         },
       }),
+
+      ...(type && { type: type as product_type }),
 
       ...((size !== undefined || color !== undefined) && {
         product_variant: {

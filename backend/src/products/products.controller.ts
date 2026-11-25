@@ -23,17 +23,6 @@ export class ProductsController {
   }
 
   /**
-   * Busca un unico producto mediante su id.
-   *
-   * @param id Id del producto buscado.
-   * @returns Producto buscado.
-   */
-  @Get(':id')
-  async getOne(@Param('id', ParseIntPipe) id: number): Promise<ReturnProductsDto> {
-    return await this.service.getOne(id);
-  }
-
-  /**
    * Busca varias variable sde producto aleatorias.
    *
    * @param query Queries de filtrado.
@@ -53,6 +42,17 @@ export class ProductsController {
   @Get('variants/:id')
   async getOneVariant(@Param('id', ParseIntPipe) id: number): Promise<ReturnVariantsDto> {
     return await this.service.getOneVariant(id);
+  }
+
+  /**
+   * Busca un unico producto mediante su id.
+   *
+   * @param id Id del producto buscado.
+   * @returns Producto buscado.
+   */
+  @Get(':id')
+  async getOne(@Param('id', ParseIntPipe) id: number): Promise<ReturnProductsDto> {
+    return await this.service.getOne(id);
   }
 
   /**

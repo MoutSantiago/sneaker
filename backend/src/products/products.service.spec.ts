@@ -219,6 +219,27 @@ describe('ProductsService', () => {
         take: 20,
       });
     });
+
+    it('should filter by type', async () => {
+      const query: ProductsQueryDto = { type: 'SHOE' };
+      mockPrisma.product.findMany.mockResolvedValue([baseProduct]);
+      mockPrisma.product.count.mockResolvedValue(1);
+      mockPrisma.$transaction.mockResolvedValue([[baseProduct], 1]);
+
+      await service.getMany(query);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
+        where: {
+          type: 'SHOE',
+        },
+        orderBy: { model: 'asc' },
+        skip: 0,
+        take: 10,
+      });
+      expect(mockPrisma.product.count).toHaveBeenCalledWith({
+        where: { type: 'SHOE' },
+      });
+    });
   });
 
   describe('getOne', () => {
@@ -278,6 +299,23 @@ describe('ProductsService', () => {
           },
           size: '42',
           color: { contains: 'blanco', mode: 'insensitive' },
+          priority: { gt: 0 },
+        },
+        include: { product: true },
+      });
+    });
+
+    it('should filter variants by type through product relation', async () => {
+      const query: ProductsQueryDto = { type: 'SHOE' };
+      mockPrisma.product_variant.findMany.mockResolvedValue([variantsWithProduct[0]]);
+
+      await service.getManyVariants(query);
+
+      expect(mockPrisma.product_variant.findMany).toHaveBeenCalledWith({
+        where: {
+          product: {
+            type: 'SHOE',
+          },
           priority: { gt: 0 },
         },
         include: { product: true },
