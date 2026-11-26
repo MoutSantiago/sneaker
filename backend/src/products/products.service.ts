@@ -18,18 +18,33 @@ export class ProductsService {
    * @returns Filtros generados.
    */
   private buildProductVariantFilters(query: ProductsQueryDto): product_variantWhereInput {
-    const { brand, size, color, minPrice, maxPrice, type } = query;
+    const { brand, size, color, minPrice, maxPrice, type, usage } = query;
 
     return {
       product: {
         ...(brand && {
           brand: {
-            contains: brand,
-            mode: 'insensitive',
+            name: {
+              contains: brand,
+              mode: 'insensitive',
+            },
           },
         }),
 
         ...(type && { type: type as product_type }),
+
+        ...(usage && {
+          product_use: {
+            some: {
+              usage: {
+                name: {
+                  contains: usage,
+                  mode: 'insensitive',
+                },
+              },
+            },
+          },
+        }),
 
         ...((minPrice !== undefined || maxPrice !== undefined) && {
           price: {
@@ -69,6 +84,7 @@ export class ProductsService {
       minPrice,
       maxPrice,
       type,
+      usage,
       sortBy = 'model',
       order = 'asc',
       page = 1,
@@ -78,12 +94,27 @@ export class ProductsService {
     const where: productWhereInput = {
       ...(brand && {
         brand: {
-          contains: brand,
-          mode: 'insensitive',
+          name: {
+            contains: brand,
+            mode: 'insensitive',
+          },
         },
       }),
 
       ...(type && { type: type as product_type }),
+
+      ...(usage && {
+        product_use: {
+          some: {
+            usage: {
+              name: {
+                contains: usage,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      }),
 
       ...((size !== undefined || color !== undefined) && {
         product_variant: {

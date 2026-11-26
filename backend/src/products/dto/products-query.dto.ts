@@ -22,6 +22,10 @@ export class ProductsQueryDto {
   color?: string;
 
   @IsOptional()
+  @IsString()
+  usage?: string;
+
+  @IsOptional()
   @Type(() => Number)
   @IsNumber()
   minPrice?: number;
@@ -32,7 +36,7 @@ export class ProductsQueryDto {
   maxPrice?: number;
 
   @IsOptional()
-  @IsIn(['name', 'price', 'createdAt'])
+  @IsIn(['model', 'price'])
   sortBy?: string;
 
   @IsOptional()

@@ -32,10 +32,9 @@ describe('ProductsController', () => {
     id: 1,
     model: 'Air Max 90',
     description: 'Zapatilla clásica',
-    brand: 'Nike',
+    brand_id: 1,
     price: 120.0,
     type: 'SHOE',
-    usage: 'running',
     material: 'cuero',
   };
 
