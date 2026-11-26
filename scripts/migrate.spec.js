@@ -336,7 +336,7 @@ describe('runMigrations', () => {
   const buildOptions = () => ({
     databaseUrl: MAIN_DATABASE_URL,
     historyDatabaseUrl: DATABASE_URL,
-    dataDir: tmpDir,
+    migrationsDir: tmpDir,
   });
 
   beforeEach(async () => {
@@ -416,7 +416,7 @@ describe('runMigrations', () => {
   });
 
   it('lanza un error controlado, sin conectarse a ninguna base, si no existe la carpeta', async () => {
-    const options = { ...buildOptions(), dataDir: path.join(tmpDir, 'no-existe') };
+    const options = { ...buildOptions(), migrationsDir: path.join(tmpDir, 'no-existe') };
 
     await expect(runMigrations(options)).rejects.toThrow(
       'No se pudo leer la carpeta de migraciones',

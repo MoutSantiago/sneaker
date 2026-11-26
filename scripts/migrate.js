@@ -11,7 +11,7 @@ const { readdir, readFile } = require('node:fs/promises');
 const path = require('node:path');
 const { Client } = require('pg');
 
-const DATA_DIR = path.resolve(__dirname, '..', 'data');
+const MIGRATIONS_DIR = path.resolve(__dirname, '..', 'migrations');
 const DATABASE_NOT_FOUND_CODE = '3D000';
 const MAINTENANCE_DATABASE = 'postgres';
 const MIGRATION_FILE_PATTERN = /^\d{3}_.+\.sql$/;
@@ -19,17 +19,19 @@ const MIGRATION_FILE_PATTERN = /^\d{3}_.+\.sql$/;
 /**
  * Lista los archivos de migración de una carpeta.
  * Solo considera archivos con formato NNN_nombre.sql, por ejemplo 001_product_table.sql.
- * @param {string} [dataDir] - Ruta de la carpeta con las migraciones. Por defecto, `data/` en la raíz del repo.
+ * @param {string} [migrationsDir] - Ruta de la carpeta con las migraciones. Por defecto, `migrations/` en la raíz del repo.
  * @returns {Promise<string[]>} Nombres de archivo ordenados alfabéticamente.
  * @throws {Error} Si la carpeta no existe o no se puede leer.
  */
-async function listMigrationFiles(dataDir = DATA_DIR) {
+async function listMigrationFiles(migrationsDir = MIGRATIONS_DIR) {
   let entries;
 
   try {
-    entries = await readdir(dataDir);
+    entries = await readdir(migrationsDir);
   } catch (error) {
-    throw new Error(`No se pudo leer la carpeta de migraciones "${dataDir}": ${error.message}`);
+    throw new Error(
+      `No se pudo leer la carpeta de migraciones "${migrationsDir}": ${error.message}`,
+    );
   }
 
   return entries.filter((name) => MIGRATION_FILE_PATTERN.test(name)).sort();
@@ -165,13 +167,13 @@ async function connectToHistoryDatabase(connectionString) {
  * Si el SQL falla, se revierte la transacción y no queda ningún cambio parcial.
  * Los archivos no deben incluir sus propios BEGIN ni COMMIT.
  * @param {import('pg').Client} client - Cliente conectado a la base de datos principal.
- * @param {string} dataDir - Carpeta que contiene la migración.
+ * @param {string} migrationsDir - Carpeta que contiene la migración.
  * @param {string} fileName - Nombre del archivo, por ejemplo `001_product_table.sql`.
  * @returns {Promise<void>}
  * @throws {Error} Si no se puede leer el archivo o si el SQL falla (tras el ROLLBACK).
  */
-async function runMigration(client, dataDir, fileName) {
-  const sql = await readFile(path.join(dataDir, fileName), 'utf8');
+async function runMigration(client, migrationsDir, fileName) {
+  const sql = await readFile(path.join(migrationsDir, fileName), 'utf8');
 
   await client.query('BEGIN');
 
@@ -212,12 +214,12 @@ async function registerMigration(client, fileName) {
  * @param {object} options - Configuración de la ejecución.
  * @param {string} options.databaseUrl - URL de conexión de la base de datos principal.
  * @param {string} options.historyDatabaseUrl - URL de conexión de la base de datos secundaria.
- * @param {string} [options.dataDir] - Carpeta con las migraciones. Por defecto, `data/` en la raíz del repo.
+ * @param {string} [options.migrationsDir] - Carpeta con las migraciones. Por defecto, `migrations/` en la raíz del repo.
  * @returns {Promise<string[]>} Nombres de los archivos aplicados en esta ejecución.
  * @throws {Error} Si falta la carpeta, no se puede acceder a alguna base o una migración falla.
  */
-async function runMigrations({ databaseUrl, historyDatabaseUrl, dataDir = DATA_DIR }) {
-  const fileNames = await listMigrationFiles(dataDir);
+async function runMigrations({ databaseUrl, historyDatabaseUrl, migrationsDir = MIGRATIONS_DIR }) {
+  const fileNames = await listMigrationFiles(migrationsDir);
   const historyClient = await connectToHistoryDatabase(historyDatabaseUrl);
   let mainClient;
 
@@ -239,7 +241,7 @@ async function runMigrations({ databaseUrl, historyDatabaseUrl, dataDir = DATA_D
     }
 
     for (const fileName of pending) {
-      await runMigration(mainClient, dataDir, fileName);
+      await runMigration(mainClient, migrationsDir, fileName);
       await registerMigration(historyClient, fileName);
       console.log(`Migración aplicada: ${fileName}`);
     }
@@ -255,10 +257,10 @@ async function runMigrations({ databaseUrl, historyDatabaseUrl, dataDir = DATA_D
  * Punto de entrada del script: valida la configuración, ejecuta las migraciones pendientes
  * y devuelve el código de salida del proceso.
  * @param {Record<string, string | undefined>} env - Variables de entorno.
- * @param {string} [dataDir] - Carpeta con las migraciones. Por defecto, `data/` en la raíz del repo.
+ * @param {string} [migrationsDir] - Carpeta con las migraciones. Por defecto, `migrations/` en la raíz del repo.
  * @returns {Promise<number>} `0` si terminó bien; `1` si hubo algún error.
  */
-async function main(env, dataDir) {
+async function main(env, migrationsDir) {
   const { DATABASE_URL, MIGRATIONS_DATABASE_URL } = env;
 
   if (!DATABASE_URL || !MIGRATIONS_DATABASE_URL) {
@@ -271,7 +273,7 @@ async function main(env, dataDir) {
     await runMigrations({
       databaseUrl: DATABASE_URL,
       historyDatabaseUrl: MIGRATIONS_DATABASE_URL,
-      dataDir,
+      migrationsDir,
     });
 
     return 0;
