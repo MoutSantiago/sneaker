@@ -235,7 +235,7 @@ async function runMigrations({ databaseUrl, historyDatabaseUrl, dataDir = DATA_D
     try {
       mainClient = await openClient(databaseUrl);
     } catch (error) {
-      throw new Error(`No se pudo acceder a la base de datos principal: ${error.message}`);
+      throw new Error(`No se pudo acceder a la base de datos principal: ${getErrorMessage(error)}`);
     }
 
     for (const fileName of pending) {

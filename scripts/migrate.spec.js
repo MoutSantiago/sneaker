@@ -432,6 +432,16 @@ describe('runMigrations', () => {
     );
     expect(history.end).toHaveBeenCalledTimes(1);
   });
+
+  it('informa el detalle si la base principal falla con un AggregateError', async () => {
+    main.connect.mockRejectedValue(
+      new AggregateError([new Error('connect ECONNREFUSED 127.0.0.1:5999')], ''),
+    );
+
+    await expect(runMigrations(buildOptions())).rejects.toThrow(
+      'No se pudo acceder a la base de datos principal: connect ECONNREFUSED 127.0.0.1:5999',
+    );
+  });
 });
 
 describe('main', () => {
