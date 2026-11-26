@@ -38,10 +38,9 @@ describe('ProductsService', () => {
     id: 1,
     model: 'Air Max 90',
     description: 'Zapatilla clásica',
-    brand: 'Nike',
+    brand_id: 1,
     price: 120.0,
     type: 'SHOE',
-    usage: 'running',
     material: 'cuero',
   };
 
@@ -101,7 +100,7 @@ describe('ProductsService', () => {
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
         where: {
-          brand: { contains: 'nike', mode: 'insensitive' },
+          brand: { name: { contains: 'nike', mode: 'insensitive' } },
         },
         orderBy: { model: 'asc' },
         skip: 0,
@@ -202,7 +201,7 @@ describe('ProductsService', () => {
 
       expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
         where: {
-          brand: { contains: 'adidas', mode: 'insensitive' },
+          brand: { name: { contains: 'adidas', mode: 'insensitive' } },
           product_variant: {
             some: {
               size: '41',
@@ -235,6 +234,41 @@ describe('ProductsService', () => {
       });
       expect(mockPrisma.product.count).toHaveBeenCalledWith({
         where: { type: 'SHOE' },
+      });
+    });
+
+    it('should filter by usage case-insensitive via product_use', async () => {
+      const query: ProductsQueryDto = { usage: 'running' };
+      mockPrisma.product.findMany.mockResolvedValue([baseProduct]);
+      mockPrisma.product.count.mockResolvedValue(1);
+      mockPrisma.$transaction.mockResolvedValue([[baseProduct], 1]);
+
+      await service.getMany(query);
+
+      expect(mockPrisma.product.findMany).toHaveBeenCalledWith({
+        where: {
+          product_use: {
+            some: {
+              usage: {
+                name: { contains: 'running', mode: 'insensitive' },
+              },
+            },
+          },
+        },
+        orderBy: { model: 'asc' },
+        skip: 0,
+        take: 10,
+      });
+      expect(mockPrisma.product.count).toHaveBeenCalledWith({
+        where: {
+          product_use: {
+            some: {
+              usage: {
+                name: { contains: 'running', mode: 'insensitive' },
+              },
+            },
+          },
+        },
       });
     });
   });
@@ -290,7 +324,7 @@ describe('ProductsService', () => {
       expect(mockPrisma.product_variant.findMany).toHaveBeenCalledWith({
         where: {
           product: {
-            brand: { contains: 'nike', mode: 'insensitive' },
+            brand: { name: { contains: 'nike', mode: 'insensitive' } },
           },
           size: '42',
           color: { contains: 'blanco', mode: 'insensitive' },
@@ -310,6 +344,29 @@ describe('ProductsService', () => {
         where: {
           product: {
             type: 'SHOE',
+          },
+          priority: { gt: 0 },
+        },
+        include: { product: true },
+      });
+    });
+
+    it('should filter variants by usage through product relation', async () => {
+      const query: ProductsQueryDto = { usage: 'running' };
+      mockPrisma.product_variant.findMany.mockResolvedValue([variantsWithProduct[0]]);
+
+      await service.getManyVariants(query);
+
+      expect(mockPrisma.product_variant.findMany).toHaveBeenCalledWith({
+        where: {
+          product: {
+            product_use: {
+              some: {
+                usage: {
+                  name: { contains: 'running', mode: 'insensitive' },
+                },
+              },
+            },
           },
           priority: { gt: 0 },
         },
