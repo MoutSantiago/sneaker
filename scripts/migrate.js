@@ -82,6 +82,25 @@ async function getExecutedMigrations(client) {
 }
 
 /**
+ * Obtiene un texto legible de un error de conexión.
+ * Los errores de conexión a `localhost` pueden llegar como `AggregateError`, con el mensaje vacío
+ * y el detalle en `errors` (uno por dirección probada, por ejemplo IPv6 e IPv4).
+ * @param {Error & { code?: string, errors?: Error[] }} error - Error capturado.
+ * @returns {string} El mensaje del error, el de sus errores internos o su código.
+ */
+function getErrorMessage(error) {
+  if (error.message) {
+    return error.message;
+  }
+
+  if (Array.isArray(error.errors) && error.errors.length > 0) {
+    return error.errors.map((inner) => inner.message).join('; ');
+  }
+
+  return error.code ?? 'error desconocido';
+}
+
+/**
  * Abre una conexión a PostgreSQL.
  * @param {string} connectionString - URL de conexión.
  * @returns {Promise<import('pg').Client>} Cliente conectado.
@@ -126,7 +145,9 @@ async function connectToHistoryDatabase(connectionString) {
     return await openClient(connectionString);
   } catch (error) {
     if (error.code !== DATABASE_NOT_FOUND_CODE) {
-      throw new Error(`No se pudo acceder a la base de datos secundaria: ${error.message}`);
+      throw new Error(
+        `No se pudo acceder a la base de datos secundaria: ${getErrorMessage(error)}`,
+      );
     }
   }
 
@@ -135,7 +156,7 @@ async function connectToHistoryDatabase(connectionString) {
 
     return await openClient(connectionString);
   } catch (error) {
-    throw new Error(`No se pudo crear la base de datos secundaria: ${error.message}`);
+    throw new Error(`No se pudo crear la base de datos secundaria: ${getErrorMessage(error)}`);
   }
 }
 
@@ -266,6 +287,7 @@ module.exports = {
   createDatabase,
   ensureHistoryTable,
   filterPendingMigrations,
+  getErrorMessage,
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,

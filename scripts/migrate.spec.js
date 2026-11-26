@@ -7,6 +7,7 @@ const {
   createDatabase,
   ensureHistoryTable,
   filterPendingMigrations,
+  getErrorMessage,
   getExecutedMigrations,
   getMigrationName,
   listMigrationFiles,
@@ -200,6 +201,22 @@ describe('connectToHistoryDatabase', () => {
       'No se pudo acceder a la base de datos secundaria: connect ECONNREFUSED',
     );
     expect(Client).toHaveBeenCalledTimes(1);
+  });
+
+  it('informa el detalle cuando la conexión falla con un AggregateError', async () => {
+    const aggregate = new AggregateError(
+      [
+        new Error('connect ECONNREFUSED ::1:5999'),
+        new Error('connect ECONNREFUSED 127.0.0.1:5999'),
+      ],
+      '',
+    );
+    const failing = { connect: jest.fn().mockRejectedValue(aggregate) };
+    Client.mockImplementation(() => failing);
+
+    await expect(connectToHistoryDatabase(DATABASE_URL)).rejects.toThrow(
+      'No se pudo acceder a la base de datos secundaria: connect ECONNREFUSED ::1:5999; connect ECONNREFUSED 127.0.0.1:5999',
+    );
   });
 
   it('lanza un error controlado si no se puede crear la base', async () => {
@@ -462,5 +479,27 @@ describe('main', () => {
     const exitCode = await main(ENV, tmpDir);
 
     expect(exitCode).toBe(0);
+  });
+});
+
+describe('getErrorMessage', () => {
+  it('devuelve el mensaje del error si lo tiene', () => {
+    expect(getErrorMessage(new Error('connect ECONNREFUSED'))).toBe('connect ECONNREFUSED');
+  });
+
+  it('une los mensajes de los errores internos si el mensaje está vacío', () => {
+    const error = new AggregateError([new Error('error uno'), new Error('error dos')], '');
+
+    expect(getErrorMessage(error)).toBe('error uno; error dos');
+  });
+
+  it('usa el código del error si no hay mensaje ni errores internos', () => {
+    const error = Object.assign(new Error(''), { code: 'ECONNREFUSED' });
+
+    expect(getErrorMessage(error)).toBe('ECONNREFUSED');
+  });
+
+  it('devuelve un texto genérico si no hay ningún dato', () => {
+    expect(getErrorMessage(new Error(''))).toBe('error desconocido');
   });
 });
