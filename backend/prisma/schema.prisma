@@ -13,11 +13,14 @@ model product {
   id              Int               @id @default(autoincrement())
   model           String            @db.VarChar(50)
   description     String?
-  brand           String            @db.VarChar(50)
   price           Decimal           @db.Decimal(10, 2)
   type            product_type
-  usage           String?           @db.VarChar(30)
   material        String?           @db.VarChar(50)
+  brand_id        Int
+  has_category    has_category[]
+  has_tag         has_tag[]
+  brand           brand             @relation(fields: [brand_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "fk_product_brand")
+  product_use     product_use[]
   product_variant product_variant[]
 }
 
@@ -32,6 +35,58 @@ model product_variant {
   product    product @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_product_variant_product")
 
   @@unique([product_id, size, color], map: "uq_product_variant")
+}
+
+model brand {
+  id      Int       @id @default(autoincrement())
+  name    String    @unique @db.VarChar(50)
+  product product[]
+}
+
+model category {
+  id           Int            @id @default(autoincrement())
+  name         String         @db.VarChar(50)
+  description  String?
+  has_category has_category[]
+}
+
+model has_category {
+  category_id Int
+  product_id  Int
+  category    category @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  product     product  @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([category_id, product_id])
+}
+
+model has_tag {
+  tag_id     Int
+  product_id Int
+  product    product @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  tag        tag     @relation(fields: [tag_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([tag_id, product_id])
+}
+
+model product_use {
+  usage_id   Int
+  product_id Int
+  product    product @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usage      usage   @relation(fields: [usage_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([usage_id, product_id])
+}
+
+model tag {
+  id      Int       @id @default(autoincrement())
+  name    String    @db.VarChar(50)
+  has_tag has_tag[]
+}
+
+model usage {
+  id          Int           @id @default(autoincrement())
+  name        String        @unique @db.VarChar(50)
+  product_use product_use[]
 }
 
 enum product_type {

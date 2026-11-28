@@ -361,11 +361,45 @@ Ambos jobs corren en paralelo y son independientes.
 
 ---
 
-## 10. Checklist antes de commit
+## 11. Migraciones de base de datos (@migrations/)
+
+Los cambios de esquema y de datos en PostgreSQL se gestionan con **migraciones SQL versionadas** en la carpeta `@migrations/` (raíz del repositorio). Cada migración es un archivo `.sql` numerado con prefijo de 4 dígitos (`001_`, `002_`, …) que se aplica en orden alfabético/cronológico.
+
+### Cómo funcionan
+
+- **Formato:** archivos SQL puros, uno por migración. Ejemplos existentes:
+  - `001_product_table.sql` — crea `product`, `product_variant` y el enum `product_type`.
+  - `002_usage_table.sql` — crea `usage` y `product_use`, migra los datos de `product.usage` y elimina la columna antigua.
+  - `003_brand_table.sql` — crea `brand`, agrega `brand_id` a `product`, migra los datos de `product.brand` y elimina la columna de texto.
+  - `004_category_tag.sql` — crea `category`, `has_category`, `tag` y `has_tag`.
+- **Orden de aplicación:** se ejecutan en orden numérico (`001` → `002` → `003` → `004`). Nunca saltarse ni reordenar migraciones ya aplicadas.
+- **Idempotencia:** todas las migraciones usan `CREATE TABLE IF NOT EXISTS` y guardas (`IF NOT EXISTS`, `ON CONFLICT DO NOTHING`, etc.) para poder reejecutarse sin fallar si parte del esquema ya existe.
+- **Datos + esquema:** una migración puede incluir tanto DDL (`CREATE TABLE`, `ALTER TABLE`) como DML (`INSERT`, `UPDATE`, `DROP COLUMN`) para migrar datos existentes junto con el cambio de esquema.
+- **Aplicación:** se aplican directamente contra la base de datos PostgreSQL (por ejemplo con `psql` o el cliente SQL de tu elección), no a través de la aplicación NestJS.
+
+### Cómo agregar una nueva migración
+
+1. Crea un archivo `NNNN_descripcion.sql` en `@migrations/` con el siguiente número correlativo.
+2. Escribe SQL que sea idempotente (`IF NOT EXISTS`, `ON CONFLICT`, etc.).
+3. Si la migración reemplaza una columna, primero carga los datos en la nueva estructura y solo al final elimina la columna antigua (como hacen `002` y `003`).
+4. Prueba la migración en una base de datos de desarrollo antes de subirla.
+
+### Qué NO se debe hacer
+
+- **No usar Prisma Migrate (`prisma migrate dev` / `prisma migrate deploy`)**: este proyecto **no gestiona migraciones con Prisma**. El archivo `prisma/schema.prisma` solo refleja el estado actual del modelo para generar el cliente de Prisma; no es la fuente de verdad de migraciones ni se usa para aplicarlas.
+- **No editar `prisma/schema.prisma` para crear o modificar tablas en la base de datos**: cualquier cambio de esquema debe hacerse mediante un archivo SQL en `@migrations/`.
+- **No escribir SQL crudo ni usar `pg` directamente desde los servicios o controladores del backend**: el acceso a datos en runtime se hace exclusivamente con **Prisma** (`PrismaService`). Las migraciones son una operación de despliegue/esquema, no parte de la lógica de la aplicación.
+- **No aplicar migraciones fuera de orden** ni omitir migraciones intermedias.
+- **No modificar una migración ya aplicada y subida**: si necesita corregirse, agregue una nueva migración que revierta o ajuste lo anterior, en lugar de reescribir la existente.
+
+---
+
+## 12. Checklist antes de commit
 
 - [ ] Tres capas creadas: module, controller, service.
 - [ ] Prisma usado para acceso a datos (backend).
 - [ ] Axios usado para llamadas HTTP (frontend).
+- [ ] Cambios de esquema/datos realizados mediante migración SQL en `@migrations/` (no con Prisma Migrate).
 - [ ] JSDoc en todas las funciones y clases públicas.
 - [ ] Test cases escritos para la lógica implementada.
 - [ ] `npm run format` ejecutado.
